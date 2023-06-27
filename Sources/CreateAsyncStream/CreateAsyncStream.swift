@@ -10,9 +10,8 @@
 /// `public var numbers: AsyncStream<Int> { _numbers }
 /// `private let (_numbers, _numbersContinuation)`
 /// `   = AsyncStream.makeStream(of: Int.self)`
-/// 
+///
 @attached(member, names: arbitrary)
 public macro CreateAsyncStream<T>(of: T, named: String)
-       -> (AsyncStream<T>, AsyncStream<T>.Continuation)
-= #externalMacro(module: "CreateAsyncStreamMacros",
-                 type: "CreateAsyncStreamMacro")
+= #externalMacro(module: "CreateAsyncStreamMacros", type: "CreateAsyncStreamMacro")
+
