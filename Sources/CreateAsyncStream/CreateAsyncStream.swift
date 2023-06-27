@@ -4,7 +4,7 @@
 /// This macro adds a public async stream of a given type and a private continuation
 ///  to a class
 ///
-///     `@CreateAsyncStream(of: Int, named: "numbers")`
+///     `@CreateAsyncStream(of: Int.self, named: "numbers")`
 ///
 /// adds the following members to the class:
 /// `public var numbers: AsyncStream<Int> { _numbers }

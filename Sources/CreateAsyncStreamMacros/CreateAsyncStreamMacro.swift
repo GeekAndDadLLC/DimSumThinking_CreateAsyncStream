@@ -2,7 +2,7 @@ import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
-
+import SwiftDiagnostics
 import Foundation
 
 
@@ -23,33 +23,33 @@ public struct CreateAsyncStreamMacro: MemberMacro {
     providingMembersOf declaration: some DeclGroupSyntax,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    // FIXME: currently only used on a class but want to allow on a struct also?
-    guard declaration.as(ClassDeclSyntax.self) != nil else {
+
+    guard declaration.as(ClassDeclSyntax.self) != nil
+            // FIXME:  ??? Structs also?
+            // || declaration.as(StructDeclSyntax.self) != nil
+    else {
       throw CustomError.message("@CreateAsyncStream only works on classes")
     }
     
-    guard let arguments = Syntax(node.argument)?.children(viewMode: .fixedUp) else {
-      throw CustomError.message("@CreateAsyncStream arguments error")
+    guard case .argumentList(let arguments) = node.argument,
+          arguments.count == 2,
+          let memberAccessExpr = arguments.first?.expression.as(MemberAccessExprSyntax.self),
+          let rawType = memberAccessExpr.base?.as(IdentifierExprSyntax.self)
+    else {
+      throw CustomError.message(#"@CreateAsyncStream requires the raw type as an argument, in the form "RawType.self"."#)
     }
     
-    guard let tupleExpr = arguments.first?.as(TupleExprElementSyntax.self),
-          let typeName = tupleExpr.expression.as(IdentifierExprSyntax.self)?.identifier.text
-    else {
-      throw CustomError.message("@CreateAsyncStream typeName argument parse failed")
-    }
-
     guard let tupleExpr = arguments.dropFirst().first?.as(TupleExprElementSyntax.self),
-          let varName = tupleExpr.expression.as(StringLiteralExprSyntax.self)?.representedLiteralValue
+          let stringLiteral = tupleExpr.expression.as(StringLiteralExprSyntax.self),
+          stringLiteral.segments.count == 1,
+          case let .stringSegment(varName) = stringLiteral.segments.first
     else {
       throw CustomError.message("@CreateAsyncStream variable name parse failed")
     }
-    
-    // building these up by string interpolation seems a little unstructured but that does seem to be common.
-    // I'd feel better if we were building the correct datatypes explicitly (VariableDeclSyntax ?)
-    
+        
     return [
-      "public var \(raw: varName): AsyncStream<\(raw: typeName)> { _\(raw: varName) }",
-      "private let (_\(raw: varName), _\(raw: varName)Continuation) = AsyncStream.makeStream(of: \(raw: typeName).self)"
+      "public var \(raw: varName): AsyncStream<\(rawType)> { _\(raw: varName) }",
+      "private let (_\(raw: varName), _\(raw: varName)Continuation) = AsyncStream.makeStream(of: \(raw: rawType).self)"
     ]
   }
 }
